@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.debug.core.launchModes">
+      <launchMode
+            label="label"
+            mode="net.did2memo.remote.launchMode1">
+      </launchMode>
+   </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+      <launchConfigurationTabGroup
+            class="net.did2memo.remote.launch.RemoteExecLaunchConfigurationTabGroup"
+            id="net.did2memo.remote.launchConfigurationTabGroup"
+            type="net.did2memo.remote.launchConfigurationType">
+      </launchConfigurationTabGroup>
+   </extension>
+   <extension
+         point="org.eclipse.debug.core.launchConfigurationTypes">
+      <launchConfigurationType
+            delegate="net.did2memo.remote.launch.RemoteExecLaunchConfiguration"
+            id="net.did2memo.remote.launchConfigurationType"
+            modes="debug,run"
+            name="Remote Exec">
+      </launchConfigurationType>
+   </extension>
+
+</plugin>

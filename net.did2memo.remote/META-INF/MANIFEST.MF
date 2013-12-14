@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Remote Exec Plug-in
+Bundle-SymbolicName: net.did2memo.remote;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: net.did2memo.remote.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.debug.core,
+ org.eclipse.debug.ui,
+ org.eclipse.jdt.debug.ui;bundle-version="3.6.200",
+ org.eclipse.jdt.launching;bundle-version="3.7.0",
+ org.eclipse.ui.console;bundle-version="3.5.200",
+ org.eclipse.ui.externaltools;bundle-version="3.2.200",
+ org.eclipse.core.variables;bundle-version="3.2.700",
+ org.eclipse.jdt;bundle-version="3.9.0",
+ org.eclipse.jdt.core;bundle-version="3.9.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: lib/commons-exec-1.1.jar,
+ lib/commons-lang3-3.1.jar,
+ .
