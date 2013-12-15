@@ -14,6 +14,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Text;
@@ -28,6 +29,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	protected Text fSshText;
 	protected Text fScpText;
 
+	protected Button fRemoteDebugCheckButton;
 	protected Text fTunnelingLocalPortText;
 	protected Text fRemoteDebugPortText;
 
@@ -48,6 +50,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		@Override
 		public void widgetSelected(SelectionEvent e) {
 			Object source = e.getSource();
+
 		}
 	}
 
@@ -104,14 +107,30 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	protected void createTunnelingConfigEditor(Composite parent) {
-		Group group = SWTFactory.createGroup(parent, "SSH Tunneling to Remote JVM", 2, 2, GridData.FILL_HORIZONTAL);
+		Group group = SWTFactory.createGroup(parent, "SSH Tunneling to Remote JVM", 1, 3, GridData.FILL_HORIZONTAL);
 
-		SWTFactory.createLabel(group, "Local Port (e.g. 61620):", 1);
-		this.fTunnelingLocalPortText = SWTFactory.createSingleText(group, 1);
+		this.fRemoteDebugCheckButton = SWTFactory.createCheckButton(group, "Enalbe Remote Debug (Experimental)", null, false, 1);
+		this.fRemoteDebugCheckButton.addSelectionListener(new SelectionListener() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				boolean enabled = RemoteExecMainTab.this.fRemoteDebugCheckButton.getSelection();
+				RemoteExecMainTab.this.fTunnelingLocalPortText.setEnabled(enabled);
+				RemoteExecMainTab.this.fRemoteDebugPortText.setEnabled(enabled);
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+			}
+		});
+
+		Composite confGroup = SWTFactory.createComposite(group, 2, 2, GridData.FILL_HORIZONTAL);
+
+		SWTFactory.createLabel(confGroup, "Local Port (e.g. 61620):", 1);
+		this.fTunnelingLocalPortText = SWTFactory.createSingleText(confGroup, 1);
 		this.fTunnelingLocalPortText.addModifyListener(this.fListener);
 
-		SWTFactory.createLabel(group, "Remote Debug Port (e.g. 61620):", 1);
-		this.fRemoteDebugPortText = SWTFactory.createSingleText(group, 1);
+		SWTFactory.createLabel(confGroup, "Remote Debug Port (e.g. 61620):", 1);
+		this.fRemoteDebugPortText = SWTFactory.createSingleText(confGroup, 1);
 		this.fRemoteDebugPortText.addModifyListener(this.fListener);
 	}
 
@@ -141,6 +160,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		updateRemoteWorkingDirectoryFromConfiguration(configuration);
 		updateSshFromConfiguration(configuration);
 		updateScpFromConfiguration(configuration);
+		updateRemoteDebugCheckButton(configuration);
 		updateTunnelingLocalPortText(configuration);
 		updateRemoteDebugPortText(configuration);
 
@@ -213,6 +233,17 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fScpText.setText(scp);
 	}
 
+	private void updateRemoteDebugCheckButton(ILaunchConfiguration configuration) {
+		boolean enableRemoteDebug = false;
+		final boolean DEFAULT = false;
+		try {
+			enableRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, DEFAULT);
+		} catch (CoreException ce) {
+			setErrorMessage(ce.getStatus().getMessage());
+		}
+		this.fRemoteDebugCheckButton.setSelection(enableRemoteDebug);
+	}
+
 	private void updateTunnelingLocalPortText(ILaunchConfiguration configuration) {
 		String tunnelingLocalPort = "";
 		final String DEFAULT = "61620";
@@ -222,6 +253,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
 		this.fTunnelingLocalPortText.setText(tunnelingLocalPort);
+
+		this.fTunnelingLocalPortText.setEnabled(this.fRemoteDebugCheckButton.getSelection());
 	}
 
 	private void updateRemoteDebugPortText(ILaunchConfiguration configuration) {
@@ -233,6 +266,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
 		this.fRemoteDebugPortText.setText(remoteDebugPort);
+
+		this.fRemoteDebugPortText.setEnabled(this.fRemoteDebugCheckButton.getSelection());
 	}
 
 	@Override
@@ -243,13 +278,14 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, this.fRemoteWorkingDirectoryText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, this.fSshText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, this.fScpText.getText().trim());
+		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, this.fRemoteDebugCheckButton.getSelection());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, this.fTunnelingLocalPortText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, this.fRemoteDebugPortText.getText().trim());
 	}
 
 	@Override
 	public String getName() {
-		return "[R] Remote Exec";
+		return "Remote Execution";
 	}
 
 }

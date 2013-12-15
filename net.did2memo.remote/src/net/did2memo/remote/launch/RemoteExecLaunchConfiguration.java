@@ -47,15 +47,16 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		String attrUser = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_USER, "");
 		String attrHost = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, "");
 		String attrPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, "22");
+		boolean attrRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, false);
 		String attrRemoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, ".");
 		String attrSshPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, "");
 		String attrScpPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, "");
+
 		String attrTunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, "61620");
 		String attrRemoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, "61620");
 
 		String programArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROGRAM_ARGUMENTS, "");
 		String vmArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS, "");
-//		IRuntimeClasspathEntry[] entries = JavaRuntime.computeUnresolvedRuntimeClasspath(configuration);
 		String[] classpaths = getClasspath(configuration);
 
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
@@ -72,6 +73,8 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		final String SCRIPT_NAME = "launch-script";
 		String localScriptPath = localRootPath + File.separator + SCRIPT_NAME;
 		String remoteScriptPath = remoteRootPath + "/" + SCRIPT_NAME;
+
+		boolean remoteDebug = attrRemoteDebug && "debug".equals(mode);
 
 		// careate local working folder
 
@@ -109,10 +112,10 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		// create execute script
 		this.printConsole("### compose script ###\n");
 		String script = "#!/bin/sh" + "\n";
-		// sample : X:\freeware\Java\jdk1.7.0_05\bin\javaw.exe -agentlib:jdwp=transport=dt_socket,suspend=y,address=localhost:61683 -Xms4000m -Xmx4000m -Dfile.encoding=UTF-8 -classpath X:\home\git\frt-simulator\structured-overlay-simulator\target\classes;C:\Users\dwarf\Dropbox\freeware\eclipse\plugins\org.testng.eclipse_6.8.6.20130914_0724\lib\testng.jar;X:\home\.m2\repository\org\testng\testng\6.3.1\testng-6.3.1.jar;X:\home\.m2\repository\org\beanshell\bsh\2.0b4\bsh-2.0b4.jar;X:\home\.m2\repository\com\beust\jcommander\1.12\jcommander-1.12.jar;X:\home\.m2\repository\org\yaml\snakeyaml\1.6\snakeyaml-1.6.jar;X:\home\.m2\repository\org\apache\commons\commons-lang3\3.1\commons-lang3-3.1.jar;X:\home\.m2\repository\org\apache\commons\commons-math3\3.0\commons-math3-3.0.jar;X:\home\.m2\repository\net\sf\supercsv\super-csv\2.1.0\super-csv-2.1.0.jar net.did2memo.lantanasim.simulator.experiment.ChordExperiment
 		script += "java";
-		if ("debug".equals(mode))
+		if (remoteDebug) {
 			script += " -agentlib:jdwp=transport=dt_socket,suspend=y,server=y,timeout=10000,address=" + attrRemoteDebugPort;
+		}
 		script += " " + vmArguments;
 		script += " -Dfile.encoding=UTF-8";
 		script += " -classpath " + "\"" + classpathArg + "\"";
@@ -144,13 +147,13 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		// execute via ssh
 		String[] invokeCommand = new String[] { "/bin/sh", remoteScriptPath };
-		if (!"debug".equals(mode)) {
+		if (!remoteDebug) {
 			externalCommand.execSsh(invokeCommand);
 			this.printConsole("### finish remote exec (not debug mode) ###\n");
 			return;
-		} else {
-			Process invokeCommandProcess = externalCommand.execAsyncSsh(invokeCommand);
 		}
+
+		Process invokeCommandProcess = externalCommand.execAsyncSsh(invokeCommand);
 
 		// port forwarding
 		this.printConsole("### begin port forwarding ###\n");
