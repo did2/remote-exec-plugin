@@ -40,6 +40,8 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 	@Override
 	public void launch(ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		// afraid to use "rm" command
+		// eclipse console
 
 		ILaunchConfigurationWorkingCopy copy = configuration.getWorkingCopy();
 
