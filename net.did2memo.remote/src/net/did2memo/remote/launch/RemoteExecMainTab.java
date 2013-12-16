@@ -41,10 +41,12 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		@Override
 		public void modifyText(ModifyEvent e) {
 			updateLaunchConfigurationDialog();
+			updateLocalCommandPlan();
 		}
 
 		@Override
-		public void widgetDefaultSelected(SelectionEvent e) {/*do nothing*/
+		public void widgetDefaultSelected(SelectionEvent e) {
+			/*do nothing*/
 		}
 
 		@Override
@@ -80,11 +82,11 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fUserText = SWTFactory.createSingleText(group, 1);
 		this.fUserText.addModifyListener(this.fListener);
 
-		SWTFactory.createLabel(group, "Host Name or IP Address:", 1);
+		SWTFactory.createLabel(group, "Host Name or IP Address (e.g. example.net):", 1);
 		this.fHostText = SWTFactory.createSingleText(group, 1);
 		this.fHostText.addModifyListener(this.fListener);
 
-		SWTFactory.createLabel(group, "Port:", 1);
+		SWTFactory.createLabel(group, "SSH Port (e.g. 22):", 1);
 		this.fPortText = SWTFactory.createSingleText(group, 1);
 		this.fPortText.addModifyListener(this.fListener);
 
@@ -107,12 +109,14 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	protected void createTunnelingConfigEditor(Composite parent) {
-		Group group = SWTFactory.createGroup(parent, "SSH Tunneling to Remote JVM", 1, 3, GridData.FILL_HORIZONTAL);
+		Group group = SWTFactory.createGroup(parent, "Remote Debug", 1, 3, GridData.FILL_HORIZONTAL);
 
 		this.fRemoteDebugCheckButton = SWTFactory.createCheckButton(group, "Enalbe Remote Debug (Experimental)", null, false, 1);
 		this.fRemoteDebugCheckButton.addSelectionListener(new SelectionListener() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				updateLaunchConfigurationDialog();
+
 				boolean enabled = RemoteExecMainTab.this.fRemoteDebugCheckButton.getSelection();
 				RemoteExecMainTab.this.fTunnelingLocalPortText.setEnabled(enabled);
 				RemoteExecMainTab.this.fRemoteDebugPortText.setEnabled(enabled);
@@ -144,6 +148,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		gd.heightHint = 30;
 		gd.widthHint = 100;
 		this.fCommandPlanText.setLayoutData(gd);
+
+		group.setVisible(false);
 	}
 
 	@Override
@@ -164,7 +170,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		updateTunnelingLocalPortText(configuration);
 		updateRemoteDebugPortText(configuration);
 
-		this.fCommandPlanText.setText(this.fScpText.getText() + " -P " + this.fPortText.getText() + " ");
+		updateLocalCommandPlan();
+
 	}
 
 	private void updateUserFromConfiguration(ILaunchConfiguration configuration) {
@@ -268,6 +275,10 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fRemoteDebugPortText.setText(remoteDebugPort);
 
 		this.fRemoteDebugPortText.setEnabled(this.fRemoteDebugCheckButton.getSelection());
+	}
+
+	private void updateLocalCommandPlan() {
+		this.fCommandPlanText.setText(this.fScpText.getText() + " -P " + this.fPortText.getText() + " ");
 	}
 
 	@Override

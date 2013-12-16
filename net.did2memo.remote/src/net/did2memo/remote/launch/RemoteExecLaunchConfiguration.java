@@ -20,6 +20,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
@@ -39,8 +40,6 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 	@Override
 	public void launch(ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
-		// afraid to use "rm" command
-		// eclipse console
 
 		ILaunchConfigurationWorkingCopy copy = configuration.getWorkingCopy();
 
@@ -51,10 +50,10 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		String attrRemoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, ".");
 		String attrSshPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, "");
 		String attrScpPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, "");
-
 		String attrTunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, "61620");
 		String attrRemoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, "61620");
 
+		String mainClassName = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, "");
 		String programArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROGRAM_ARGUMENTS, "");
 		String vmArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS, "");
 		String[] classpaths = getClasspath(configuration);
@@ -62,24 +61,33 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot root = workspace.getRoot();
 		IProject project = root.getProject(configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, ""));
-		String tmpDirName = "remote-exec";
-		String localWorkingDirectory = project.getLocation().toOSString() + File.separator + tmpDirName;
+		String localRemoteExecDirName = "remote-exec";
+		String localRemoteExecDirectory = project.getLocation().toOSString() + File.separator + localRemoteExecDirName;
 
-		String localRootPath = localWorkingDirectory;
+		String localRootPath = localRemoteExecDirectory;
 		String remoteRootParentPath = (attrRemoteWorkingDirectory == "" ? "./remote-exec" : attrRemoteWorkingDirectory);
-		String remoteRootPath = remoteRootParentPath + "/" + tmpDirName;
-		String localClasspathDirPath = localRootPath + File.separator + "classpath";
+		String remoteRootPath = remoteRootParentPath + "/" + localRemoteExecDirName;
+//		String localClasspathDirPath = localRootPath + File.separator + "classpath";
 		String remoteClasspathDirPath = remoteRootPath + "/" + "classpath";
+
 		final String SCRIPT_NAME = "launch-script";
 		String localScriptPath = localRootPath + File.separator + SCRIPT_NAME;
 		String remoteScriptPath = remoteRootPath + "/" + SCRIPT_NAME;
 
 		boolean remoteDebug = attrRemoteDebug && "debug".equals(mode);
 
+		this.prepareConsole(configuration);
+
 		// careate local working folder
+		this.printLaunchInfo("### prepare local directories ###\n");
+		boolean created;
+		created = new File(localRootPath).mkdirs();
+		if (created) {
+			this.printLaunchInfo("created directory : " + localRootPath + "\n");
+		}
 
 		// scp classpath files
-		this.printConsole("### scp classpath elements ###\n");
+		this.printLaunchInfo("### scp classpath elements ###\n");
 		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(), launch, configuration);
 		externalCommand.setSshInfo(attrSshPath, attrScpPath, attrPort, attrUser, attrHost);
 		externalCommand.execSsh(new String[] { "mkdir", "-p", remoteClasspathDirPath });
@@ -110,7 +118,7 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		}
 
 		// create execute script
-		this.printConsole("### compose script ###\n");
+		this.printLaunchInfo("### compose script ###\n");
 		String script = "#!/bin/sh" + "\n";
 		script += "java";
 		if (remoteDebug) {
@@ -119,28 +127,29 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		script += " " + vmArguments;
 		script += " -Dfile.encoding=UTF-8";
 		script += " -classpath " + "\"" + classpathArg + "\"";
-		script += " net.did2memo.example.Example " + programArguments;
-		this.printConsole(script + "\n");
+		script += " " + mainClassName;
+		script += " " + programArguments;
+		this.printLaunchInfo(script + "\n");
 
 		// save script
-		this.printConsole("### save script ###\n");
-		this.printConsole("write to " + localScriptPath);
+		this.printLaunchInfo("### save script ###\n");
+		this.printLaunchInfo("write to " + localScriptPath);
 		try {
 			FileUtils.writeStringToFile(new File(localScriptPath), script);
-			this.printConsole("success.\n\n");
+			this.printLaunchInfo("success.\n\n");
 		} catch (IOException e) {
-			this.printConsole("fail.\n\n");
+			this.printLaunchInfo("fail.\n\n");
 			e.printStackTrace();
 		}
 
 		// copy and exec via ssh
-		this.printConsole("### ssh login directory ###\n");
-		externalCommand.execSsh(new String[] { "pwd" });
+//		this.printConsole("### ssh login directory ###\n");
+//		externalCommand.execSsh(new String[] { "pwd" });
 
 //		// copy via scp
-		this.printConsole("### scp classpath elements ###\n");
+		this.printLaunchInfo("### scp classpath elements ###\n");
 		externalCommand.execSsh(new String[] { "mkdir", "-p", remoteRootParentPath });
-		externalCommand.execScp(localWorkingDirectory, remoteRootParentPath, true);
+		externalCommand.execScp(localRemoteExecDirectory, remoteRootParentPath, true);
 
 		// chmod via ssh
 		externalCommand.execSsh(new String[] { "chmod", "+x", remoteScriptPath });
@@ -149,14 +158,14 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		String[] invokeCommand = new String[] { "/bin/sh", remoteScriptPath };
 		if (!remoteDebug) {
 			externalCommand.execSsh(invokeCommand);
-			this.printConsole("### finish remote exec (not debug mode) ###\n");
+			this.printLaunchInfo("### finish remote exec (not debug mode) ###\n");
 			return;
 		}
 
 		Process invokeCommandProcess = externalCommand.execAsyncSsh(invokeCommand);
 
 		// port forwarding
-		this.printConsole("### begin port forwarding ###\n");
+		this.printLaunchInfo("### begin port forwarding ###\n");
 		Process tunnelingProcess = externalCommand.execAsyncSshTonneling(attrTunnelingLocalPort, attrHost, attrRemoteDebugPort);
 		OutputStream tonnelingProcessOutputStream = tunnelingProcess.getOutputStream();
 
@@ -180,17 +189,17 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		}
 
 		// finish port forwarding
-		this.printConsole("### end port forwarding ###\n");
+		this.printLaunchInfo("### end port forwarding ###\n");
 		try {
 			tonnelingProcessOutputStream.write("exit\n".getBytes());
 			tonnelingProcessOutputStream.flush();
-			this.printConsole("disconnected.\n\n");
+			this.printLaunchInfo("disconnected.\n\n");
 		} catch (IOException e) {
 			e.printStackTrace();
-			this.printConsole("disconnect failure.\n\n");
+			this.printLaunchInfo("disconnect failure.\n\n");
 		}
 
-		this.printConsole("### finish remote exec (debug mode)###\n");
+		this.printLaunchInfo("### finish remote exec (debug mode)###\n");
 	}
 
 	private void launchRemoteDebuggerlaunch(Map<String, String> arguments, ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
@@ -239,7 +248,7 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		}
 	}
 
-	private void printConsole(String string) {
+	private void printLaunchInfo(String string) {
 		try {
 			this.getConsoleOutputStream().write(string);
 		} catch (IOException e) {
@@ -250,18 +259,19 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 	private IOConsoleOutputStream outputStream = null;
 
 	private IOConsoleOutputStream getConsoleOutputStream() {
+		if (this.console == null) {
+			throw new IllegalStateException();
+		}
+
 		if (this.outputStream == null) {
-			this.outputStream = this.getConsole().newOutputStream();
+			this.outputStream = this.console.newOutputStream();
 		}
 		return this.outputStream;
 	}
 
 	private RemoteExecConsole console = null;
 
-	private RemoteExecConsole getConsole() {
-		if (this.console != null)
-			return this.console;
-
+	private void prepareConsole(ILaunchConfiguration configuration) throws CoreException {
 		final String CONSOLE_NAME = "net.did2memo.remote.console";
 		ConsolePlugin consolePlugin = ConsolePlugin.getDefault();
 		IConsoleManager consoleManager = consolePlugin.getConsoleManager();
@@ -273,9 +283,13 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 			}
 		}
 		if (this.console == null) {
-			this.console = new RemoteExecConsole(null);
+			String attrEncoding = configuration.getAttribute(DebugPlugin.ATTR_CONSOLE_ENCODING, (String) null);
+			this.console = new RemoteExecConsole(null, attrEncoding);
 			consoleManager.addConsoles(new IConsole[] { this.console });
 		}
+	}
+
+	private RemoteExecConsole getConsole() {
 		return this.console;
 	}
 }

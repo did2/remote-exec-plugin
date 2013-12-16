@@ -24,8 +24,8 @@ public class RemoteExecConsole extends IOConsole {
 	private final IOConsoleOutputStream commandOutputStdStream;
 	private final IOConsoleOutputStream commandOutputErrStream;
 
-	public RemoteExecConsole(ImageDescriptor imageDescripter) {
-		super("Remote Exec", imageDescripter);
+	public RemoteExecConsole(ImageDescriptor imageDescriptor, String encoding) {
+		super("Remote", null, imageDescriptor, encoding, false);
 
 		this.display = Display.getDefault();
 		this.commandColor = new Color(this.display, new RGB(200, 140, 7));
