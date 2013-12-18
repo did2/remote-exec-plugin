@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import net.did2memo.remote.ConsoleOutputType;
+import net.did2memo.remote.IRemoteExecConfigurationConstants;
 import net.did2memo.remote.RemoteExecConsole;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -32,43 +33,30 @@ public class ExternalCommand {
 
 	private final CommandParameterTemplate template;
 
-	private String[] sshCommandBase;
+	public ExternalCommand(File workingDirectory, RemoteExecConsole console, ILaunch launch, ILaunchConfiguration configuration) throws CoreException {
+		this.sshPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, "");
+		this.scpPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, "");
+		this.user = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_USER, "");
+		this.host = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, "");
+		this.port = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, "22");
 
-	public ExternalCommand(File workingDirectory, RemoteExecConsole console, ILaunch launch, ILaunchConfiguration configuration, CommandParameterTemplate template) {
 		this.workingDirectory = workingDirectory;
 		this.console = console;
 		this.consoleOut = console.newOutputStream();
 		this.launch = launch;
 		this.configuration = configuration;
-		this.template = template;
-	}
 
-	public void setSshInfo(String sshPath, String scpPath, String port, String user, String host) {
-		this.sshPath = sshPath;
-		this.scpPath = scpPath;
-		this.port = port;
-		this.user = user;
-		this.host = host;
+		String sshParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH_PARAMETER_TEMPLATE, "");
+		String scpParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_PARAMETER_TEMPLATE, "");
+		String scpDirParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_DIR_PARAMETER_TEMPLATE, "");
+		this.template = new CommandParameterTemplate(sshParameterTemplate, scpParameterTemplate, scpDirParameterTemplate);
 
-		this.sshCommandBase = new String[] { sshPath, "-P", port, user + "@" + host };
-	}
-
-	@Deprecated
-	public int execSsh(String[] remoteCommandLine) throws CoreException {
-		String[] commandLine = ArrayUtils.addAll(this.sshCommandBase, remoteCommandLine);
-		return this.exec(commandLine);
 	}
 
 	public int execSsh(String remoteCommandLine) throws CoreException {
 		String[] parameter = this.template.generateSshParameter(this.user, this.host, this.port, remoteCommandLine);
 		String[] commandLine = ArrayUtils.addAll(new String[] { this.sshPath }, parameter);
 		return this.exec(commandLine);
-	}
-
-	@Deprecated
-	public Process execAsyncSsh(String[] remoteCommandLine) throws CoreException {
-		String[] commandLine = ArrayUtils.addAll(this.sshCommandBase, remoteCommandLine);
-		return this.exec0(commandLine);
 	}
 
 	public Process execAsyncSsh(String remoteCommandLine) throws CoreException {

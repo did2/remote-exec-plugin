@@ -131,7 +131,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		Group group = SWTFactory.createGroup(parent, "Parameter Template", 1, 5, GridData.FILL_HORIZONTAL);
 
 		this.fPlinkPscpStyleParameterRadioButton = createRadioButton(group, "plink, pscp style (for Win)");
-//		Composite comp1 = SWTFactory.createComposite(group, 2, 1, GridData.FILL_HORIZONTAL);
+		this.fPlinkPscpStyleParameterRadioButton.addSelectionListener(this.fListener);
 		this.fPlinkPscpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -146,7 +146,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		});
 
 		this.fSshScpStyleParameterRadioButton = createRadioButton(group, "ssh, scp style (for Mac/Linux)");
-//		Composite comp2 = SWTFactory.createComposite(group, 2, 1, GridData.FILL_HORIZONTAL);
+		this.fSshScpStyleParameterRadioButton.addSelectionListener(this.fListener);
 		this.fSshScpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -173,10 +173,15 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		Composite originalComp = SWTFactory.createComposite(group, 2, 2, GridData.FILL_HORIZONTAL);
 		SWTFactory.createLabel(originalComp, "ssh parameters", 1);
 		this.fSshParameterText = SWTFactory.createSingleText(originalComp, 1);
+		this.fSshParameterText.addModifyListener(this.fListener);
 		SWTFactory.createLabel(originalComp, "scp parameters", 1);
 		this.fScpParameterText = SWTFactory.createSingleText(originalComp, 1);
+		this.fScpParameterText.addModifyListener(this.fListener);
+		;
 		SWTFactory.createLabel(originalComp, "scp(directory) parameters", 1);
 		this.fScpDirParameterText = SWTFactory.createSingleText(originalComp, 1);
+		this.fScpDirParameterText.addModifyListener(this.fListener);
+		;
 	}
 
 	protected void createTunnelingConfigEditor(Composite parent) {

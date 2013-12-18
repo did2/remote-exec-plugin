@@ -45,13 +45,8 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		ILaunchConfigurationWorkingCopy copy = configuration.getWorkingCopy();
 
-		String attrUser = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_USER, "");
-		String attrHost = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, "");
-		String attrPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, "22");
 		boolean attrRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, false);
 		String attrRemoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, ".");
-		String attrSshPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, "");
-		String attrScpPath = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, "");
 		String attrTunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, "61620");
 		String attrRemoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, "61620");
 
@@ -78,28 +73,11 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		boolean remoteDebug = attrRemoteDebug && "debug".equals(mode);
 
-		this.prepareConsole(configuration);
+		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(configuration), launch, configuration);
 
-		// careate local working folder
-		this.printLaunchInfo("### prepare local directories ###\n");
-		boolean created;
-		created = new File(localRootPath).mkdirs();
-		if (created) {
-			this.printLaunchInfo("created directory : " + localRootPath + "\n");
-		}
-
-		// scp classpath files
+		// prepare external command object
 		this.printLaunchInfo("### scp classpath elements ###\n");
-		String sshParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH_PARAMETER_TEMPLATE, "");
-		String scpParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_PARAMETER_TEMPLATE, "");
-		String scpDirParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_DIR_PARAMETER_TEMPLATE, "");
-		CommandParameterTemplate template = new CommandParameterTemplate(sshParameterTemplate, scpParameterTemplate, scpDirParameterTemplate);
-		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(), launch, configuration, template);
-		externalCommand.setSshInfo(attrSshPath, attrScpPath, attrPort, attrUser, attrHost);
-
 		externalCommand.execSsh("mkdir -p " + remoteClasspathDirPath);
-
-//		File localClasspathDir = new File(localClasspathDirPath);
 		String classpathArg = ".";
 		for (String classpath : classpaths) {
 			File source = new File(classpath);
@@ -110,6 +88,13 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 				externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath + "/" + source.getName(), false);
 				classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
 			}
+		}
+
+		// careate local working folder
+		this.printLaunchInfo("### prepare local directories ###\n");
+		boolean created = new File(localRootPath).mkdirs();
+		if (created) {
+			this.printLaunchInfo("created directory : " + localRootPath + "\n");
 		}
 
 		// create execute script
@@ -126,7 +111,7 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		script += " " + programArguments;
 		this.printLaunchInfo(script + "\n");
 
-		// save script
+		// save execute script
 		this.printLaunchInfo("### save script ###\n");
 		this.printLaunchInfo("write to " + localScriptPath);
 		try {
@@ -137,16 +122,12 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 			e.printStackTrace();
 		}
 
-		// copy and exec via ssh
-//		this.printConsole("### ssh login directory ###\n");
-//		externalCommand.execSsh(new String[] { "pwd" });
-
-//		// copy via scp
-		this.printLaunchInfo("### scp classpath elements ###\n");
+//		// scp execute script
+		this.printLaunchInfo("### scp remote-exec directory ###\n");
 		externalCommand.execSsh("mkdir -p " + remoteRootParentPath);
 		externalCommand.execScp(localRemoteExecDirectory, remoteRootParentPath, true);
 
-		// chmod via ssh
+		// chmod +x execute script
 		externalCommand.execSsh("chmod +x " + remoteScriptPath);
 
 		// execute via ssh
@@ -161,6 +142,7 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		// port forwarding
 		this.printLaunchInfo("### begin port forwarding ###\n");
+		String attrHost = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, "");
 		Process tunnelingProcess = externalCommand.execAsyncSshTonneling(attrTunnelingLocalPort, attrHost, attrRemoteDebugPort);
 		OutputStream tonnelingProcessOutputStream = tunnelingProcess.getOutputStream();
 
@@ -243,25 +225,18 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		}
 	}
 
-	private void printLaunchInfo(String string) {
-		try {
-			this.getConsoleOutputStream().write(string);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 	private IOConsoleOutputStream outputStream = null;
 
-	private IOConsoleOutputStream getConsoleOutputStream() {
-		if (this.console == null) {
-			throw new IllegalStateException();
-		}
-
+	private void printLaunchInfo(String string) {
 		if (this.outputStream == null) {
 			this.outputStream = this.console.newOutputStream();
 		}
-		return this.outputStream;
+
+		try {
+			this.outputStream.write(string);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private RemoteExecConsole console = null;
@@ -284,7 +259,9 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		}
 	}
 
-	private RemoteExecConsole getConsole() {
+	private RemoteExecConsole getConsole(ILaunchConfiguration configuration) throws CoreException {
+		if (this.console == null)
+			this.prepareConsole(configuration);
 		return this.console;
 	}
 }
