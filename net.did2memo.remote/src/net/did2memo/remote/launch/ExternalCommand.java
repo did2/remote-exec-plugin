@@ -30,14 +30,17 @@ public class ExternalCommand {
 	private String user = "";
 	private String host = "";
 
+	private final CommandParameterTemplate template;
+
 	private String[] sshCommandBase;
 
-	public ExternalCommand(File workingDirectory, RemoteExecConsole console, ILaunch launch, ILaunchConfiguration configuration) {
+	public ExternalCommand(File workingDirectory, RemoteExecConsole console, ILaunch launch, ILaunchConfiguration configuration, CommandParameterTemplate template) {
 		this.workingDirectory = workingDirectory;
 		this.console = console;
 		this.consoleOut = console.newOutputStream();
 		this.launch = launch;
 		this.configuration = configuration;
+		this.template = template;
 	}
 
 	public void setSshInfo(String sshPath, String scpPath, String port, String user, String host) {
@@ -50,23 +53,41 @@ public class ExternalCommand {
 		this.sshCommandBase = new String[] { sshPath, "-P", port, user + "@" + host };
 	}
 
+	@Deprecated
 	public int execSsh(String[] remoteCommandLine) throws CoreException {
 		String[] commandLine = ArrayUtils.addAll(this.sshCommandBase, remoteCommandLine);
 		return this.exec(commandLine);
 	}
 
+	public int execSsh(String remoteCommandLine) throws CoreException {
+		String[] parameter = this.template.generateSshParameter(this.user, this.host, this.port, remoteCommandLine);
+		String[] commandLine = ArrayUtils.addAll(new String[] { this.sshPath }, parameter);
+		return this.exec(commandLine);
+	}
+
+	@Deprecated
 	public Process execAsyncSsh(String[] remoteCommandLine) throws CoreException {
 		String[] commandLine = ArrayUtils.addAll(this.sshCommandBase, remoteCommandLine);
 		return this.exec0(commandLine);
 	}
 
+	public Process execAsyncSsh(String remoteCommandLine) throws CoreException {
+		String[] parameter = this.template.generateSshParameter(this.user, this.host, this.port, remoteCommandLine);
+		String[] commandLine = ArrayUtils.addAll(new String[] { this.sshPath }, parameter);
+		return this.exec0(commandLine);
+	}
+
 	public int execScp(String localPath, String remotePath, boolean directory) throws CoreException {
+		String[] parameter;
 		String[] commandLine;
 		if (directory) {
-			commandLine = new String[] { this.scpPath, "-r", "-P", this.port, localPath, this.user + "@" + this.host + ":" + remotePath };
+			parameter = this.template.generateScpDirCommandLine(this.user, this.host, this.port, localPath, remotePath);
+//			commandLine = new String[] { this.scpPath, "-r", "-P", this.port, localPath, this.user + "@" + this.host + ":" + remotePath };
 		} else {
-			commandLine = new String[] { this.scpPath, "-P", this.port, localPath, this.user + "@" + this.host + ":" + remotePath };
+			parameter = this.template.generateScpCommandLine(this.user, this.host, this.port, localPath, remotePath);
+//			commandLine = new String[] { this.scpPath, "-P", this.port, localPath, this.user + "@" + this.host + ":" + remotePath };
 		}
+		commandLine = ArrayUtils.addAll(new String[] { this.scpPath }, parameter);
 		return this.exec(commandLine);
 	}
 

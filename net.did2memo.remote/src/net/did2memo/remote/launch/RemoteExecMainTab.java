@@ -10,6 +10,7 @@ import org.eclipse.debug.ui.AbstractLaunchConfigurationTab;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
@@ -21,14 +22,29 @@ import org.eclipse.swt.widgets.Text;
 
 public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 
+	// remote host UI widget
 	protected Text fUserText;
 	protected Text fHostText;
 	protected Text fPortText;
 	protected Text fRemoteWorkingDirectoryText;
 
+	// path to external command line tools UI widget
 	protected Text fSshText;
 	protected Text fScpText;
 
+	// command line parameter UI widget
+	protected Button fPlinkPscpStyleParameterRadioButton;
+//	protected Text fPlinkPresetParameterText;
+//	protected Text fPscpPresetParameterText;
+	protected Button fSshScpStyleParameterRadioButton;
+//	protected Text fSshPresetParameterText;
+//	protected Text fScpPresetParameterText;
+	protected Button fOriginalStyleParameterRadioButton;
+	protected Text fSshParameterText;
+	protected Text fScpParameterText;
+	protected Text fScpDirParameterText;
+
+	// remote debug UI widget
 	protected Button fRemoteDebugCheckButton;
 	protected Text fTunnelingLocalPortText;
 	protected Text fRemoteDebugPortText;
@@ -65,6 +81,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		SWTFactory.createVerticalSpacer(comp, 5);
 
 		createExternalSshProgramEditor(comp);
+		SWTFactory.createVerticalSpacer(comp, 5);
+
+		createCommandParameterTypeEditor(comp);
 		SWTFactory.createVerticalSpacer(comp, 5);
 
 		createTunnelingConfigEditor(comp);
@@ -106,6 +125,58 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		SWTFactory.createLabel(group, "SCP (e.g. pscp.exe):", 1);
 		this.fScpText = SWTFactory.createSingleText(group, 1);
 		this.fScpText.addModifyListener(this.fListener);
+	}
+
+	protected void createCommandParameterTypeEditor(Composite parent) {
+		Group group = SWTFactory.createGroup(parent, "Parameter Template", 1, 5, GridData.FILL_HORIZONTAL);
+
+		this.fPlinkPscpStyleParameterRadioButton = createRadioButton(group, "plink, pscp style (for Win)");
+//		Composite comp1 = SWTFactory.createComposite(group, 2, 1, GridData.FILL_HORIZONTAL);
+		this.fPlinkPscpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				RemoteExecMainTab.this.fSshParameterText.setEnabled(false);
+				RemoteExecMainTab.this.fScpParameterText.setEnabled(false);
+				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(false);
+
+				RemoteExecMainTab.this.fSshParameterText.setText(CommandParameterTemplate.PLINK_DEFAULT);
+				RemoteExecMainTab.this.fScpParameterText.setText(CommandParameterTemplate.PSCP_DEFAULT);
+				RemoteExecMainTab.this.fScpDirParameterText.setText(CommandParameterTemplate.PSCP_DIR_DEFAULT);
+			}
+		});
+
+		this.fSshScpStyleParameterRadioButton = createRadioButton(group, "ssh, scp style (for Mac/Linux)");
+//		Composite comp2 = SWTFactory.createComposite(group, 2, 1, GridData.FILL_HORIZONTAL);
+		this.fSshScpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				RemoteExecMainTab.this.fSshParameterText.setEnabled(false);
+				RemoteExecMainTab.this.fScpParameterText.setEnabled(false);
+				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(false);
+
+				RemoteExecMainTab.this.fSshParameterText.setText(CommandParameterTemplate.SSH_DEFAULT);
+				RemoteExecMainTab.this.fScpParameterText.setText(CommandParameterTemplate.SCP_DEFAULT);
+				RemoteExecMainTab.this.fScpDirParameterText.setText(CommandParameterTemplate.SCP_DIR_DEFAULT);
+			}
+		});
+
+		this.fOriginalStyleParameterRadioButton = createRadioButton(group, "original parameter style");
+		this.fOriginalStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				RemoteExecMainTab.this.fSshParameterText.setEnabled(true);
+				RemoteExecMainTab.this.fScpParameterText.setEnabled(true);
+				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(true);
+			}
+		});
+
+		Composite originalComp = SWTFactory.createComposite(group, 2, 2, GridData.FILL_HORIZONTAL);
+		SWTFactory.createLabel(originalComp, "ssh parameters", 1);
+		this.fSshParameterText = SWTFactory.createSingleText(originalComp, 1);
+		SWTFactory.createLabel(originalComp, "scp parameters", 1);
+		this.fScpParameterText = SWTFactory.createSingleText(originalComp, 1);
+		SWTFactory.createLabel(originalComp, "scp(directory) parameters", 1);
+		this.fScpDirParameterText = SWTFactory.createSingleText(originalComp, 1);
 	}
 
 	protected void createTunnelingConfigEditor(Composite parent) {
@@ -166,6 +237,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		updateRemoteWorkingDirectoryFromConfiguration(configuration);
 		updateSshFromConfiguration(configuration);
 		updateScpFromConfiguration(configuration);
+		updateParameterTemplateConfiguration(configuration);
 		updateRemoteDebugCheckButton(configuration);
 		updateTunnelingLocalPortText(configuration);
 		updateRemoteDebugPortText(configuration);
@@ -240,6 +312,39 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fScpText.setText(scp);
 	}
 
+	private void updateParameterTemplateConfiguration(ILaunchConfiguration configuration) {
+		int style = IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_PUTTY_STYLE;
+		String sshParameter = CommandParameterTemplate.PLINK_DEFAULT;
+		String scpParameter = CommandParameterTemplate.PSCP_DEFAULT;
+		String scpDirParameter = CommandParameterTemplate.PSCP_DIR_DEFAULT;
+		try {
+			style = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PARAMETER_TEMPLATE_STYLE, style);
+			sshParameter = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH_PARAMETER_TEMPLATE, sshParameter);
+			scpParameter = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_PARAMETER_TEMPLATE, scpParameter);
+			scpDirParameter = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_DIR_PARAMETER_TEMPLATE, scpDirParameter);
+		} catch (CoreException ce) {
+			setErrorMessage(ce.getStatus().getMessage());
+		}
+
+		switch (style) {
+		case IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_PUTTY_STYLE:
+			this.fPlinkPscpStyleParameterRadioButton.setSelection(true);
+			this.setOriginalParameterTextEnabled(false);
+			break;
+		case IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_UNIX_STYLE:
+			this.fSshScpStyleParameterRadioButton.setSelection(true);
+			this.setOriginalParameterTextEnabled(false);
+			break;
+		default:
+			this.fOriginalStyleParameterRadioButton.setSelection(true);
+			this.setOriginalParameterTextEnabled(true);
+			break;
+		}
+		this.fSshParameterText.setText(sshParameter);
+		this.fScpParameterText.setText(scpParameter);
+		this.fScpDirParameterText.setText(scpDirParameter);
+	}
+
 	private void updateRemoteDebugCheckButton(ILaunchConfiguration configuration) {
 		boolean enableRemoteDebug = false;
 		final boolean DEFAULT = false;
@@ -287,8 +392,22 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, this.fHostText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, this.fPortText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, this.fRemoteWorkingDirectoryText.getText().trim());
+
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, this.fSshText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, this.fScpText.getText().trim());
+
+		int style;
+		if (this.fPlinkPscpStyleParameterRadioButton.getSelection())
+			style = IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_PUTTY_STYLE;
+		else if (this.fSshScpStyleParameterRadioButton.getSelection())
+			style = IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_UNIX_STYLE;
+		else
+			style = IRemoteExecConfigurationConstants.PARAMETER_TEMPLATE_ORIGINAL_STYLE;
+		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_PARAMETER_TEMPLATE_STYLE, style);
+		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SSH_PARAMETER_TEMPLATE, this.fSshParameterText.getText());
+		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_PARAMETER_TEMPLATE, this.fScpParameterText.getText());
+		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_DIR_PARAMETER_TEMPLATE, this.fScpDirParameterText.getText());
+
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, this.fRemoteDebugCheckButton.getSelection());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, this.fTunnelingLocalPortText.getText().trim());
 		configuration.setAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, this.fRemoteDebugPortText.getText().trim());
@@ -299,4 +418,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		return "Remote Execution";
 	}
 
+	private void setOriginalParameterTextEnabled(boolean enabled) {
+		RemoteExecMainTab.this.fSshParameterText.setEnabled(enabled);
+		RemoteExecMainTab.this.fScpParameterText.setEnabled(enabled);
+		RemoteExecMainTab.this.fScpDirParameterText.setEnabled(enabled);
+	}
 }

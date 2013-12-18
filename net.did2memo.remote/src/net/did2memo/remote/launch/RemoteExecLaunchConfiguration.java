@@ -90,9 +90,14 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		// scp classpath files
 		this.printLaunchInfo("### scp classpath elements ###\n");
-		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(), launch, configuration);
+		String sshParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH_PARAMETER_TEMPLATE, "");
+		String scpParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_PARAMETER_TEMPLATE, "");
+		String scpDirParameterTemplate = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP_DIR_PARAMETER_TEMPLATE, "");
+		CommandParameterTemplate template = new CommandParameterTemplate(sshParameterTemplate, scpParameterTemplate, scpDirParameterTemplate);
+		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(), launch, configuration, template);
 		externalCommand.setSshInfo(attrSshPath, attrScpPath, attrPort, attrUser, attrHost);
-		externalCommand.execSsh(new String[] { "mkdir", "-p", remoteClasspathDirPath });
+
+		externalCommand.execSsh("mkdir -p " + remoteClasspathDirPath);
 
 //		File localClasspathDir = new File(localClasspathDirPath);
 		String classpathArg = ".";
@@ -101,21 +106,9 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 			if (source.isDirectory()) {
 				externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath, true);
 				classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
-//				try {
-//					FileUtils.copyDirectoryToDirectory(source, localClasspathDir);
-//					classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
 			} else if (source.isFile()) {
 				externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath + "/" + source.getName(), false);
 				classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
-//				try {
-//					FileUtils.copyFileToDirectory(source, localClasspathDir);
-//					classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
 			}
 		}
 
@@ -150,14 +143,14 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 //		// copy via scp
 		this.printLaunchInfo("### scp classpath elements ###\n");
-		externalCommand.execSsh(new String[] { "mkdir", "-p", remoteRootParentPath });
+		externalCommand.execSsh("mkdir -p " + remoteRootParentPath);
 		externalCommand.execScp(localRemoteExecDirectory, remoteRootParentPath, true);
 
 		// chmod via ssh
-		externalCommand.execSsh(new String[] { "chmod", "+x", remoteScriptPath });
+		externalCommand.execSsh("chmod +x " + remoteScriptPath);
 
 		// execute via ssh
-		String[] invokeCommand = new String[] { "/bin/sh", remoteScriptPath };
+		String invokeCommand = "/bin/sh " + remoteScriptPath;
 		if (!remoteDebug) {
 			externalCommand.execSsh(invokeCommand);
 			this.printLaunchInfo("### finish remote exec (not debug mode) ###\n");
