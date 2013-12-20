@@ -135,10 +135,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fPlinkPscpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RemoteExecMainTab.this.fSshParameterText.setEnabled(false);
-				RemoteExecMainTab.this.fScpParameterText.setEnabled(false);
-				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(false);
-
+				RemoteExecMainTab.this.setOriginalParameterTextEnabled(false);
 				RemoteExecMainTab.this.fSshParameterText.setText(CommandParameterTemplate.PLINK_DEFAULT);
 				RemoteExecMainTab.this.fScpParameterText.setText(CommandParameterTemplate.PSCP_DEFAULT);
 				RemoteExecMainTab.this.fScpDirParameterText.setText(CommandParameterTemplate.PSCP_DIR_DEFAULT);
@@ -150,10 +147,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fSshScpStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RemoteExecMainTab.this.fSshParameterText.setEnabled(false);
-				RemoteExecMainTab.this.fScpParameterText.setEnabled(false);
-				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(false);
-
+				RemoteExecMainTab.this.setOriginalParameterTextEnabled(false);
 				RemoteExecMainTab.this.fSshParameterText.setText(CommandParameterTemplate.SSH_DEFAULT);
 				RemoteExecMainTab.this.fScpParameterText.setText(CommandParameterTemplate.SCP_DEFAULT);
 				RemoteExecMainTab.this.fScpDirParameterText.setText(CommandParameterTemplate.SCP_DIR_DEFAULT);
@@ -164,9 +158,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		this.fOriginalStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RemoteExecMainTab.this.fSshParameterText.setEnabled(true);
-				RemoteExecMainTab.this.fScpParameterText.setEnabled(true);
-				RemoteExecMainTab.this.fScpDirParameterText.setEnabled(true);
+				RemoteExecMainTab.this.setOriginalParameterTextEnabled(true);
+
 			}
 		});
 
@@ -252,10 +245,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateUserFromConfiguration(ILaunchConfiguration configuration) {
-		String user = "";
-		String DEFAULT = "root";
+		String user = "user";
 		try {
-			user = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_USER, DEFAULT);
+			user = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_USER, user);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -263,10 +255,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateHostFromConfiguration(ILaunchConfiguration configuration) {
-		String host = "";
-		String DEFAULT = "";
+		String host = "example.net";
 		try {
-			host = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, DEFAULT);
+			host = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_HOST, host);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -274,10 +265,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updatePortFromConfiguration(ILaunchConfiguration configuration) {
-		String port = "";
-		final String DEFAULT = "22";
+		String port = "22";
 		try {
-			port = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, DEFAULT);
+			port = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_PORT, port);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -285,10 +275,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateRemoteWorkingDirectoryFromConfiguration(ILaunchConfiguration configuration) {
-		String remoteWorkingDirectory = "";
-		final String DEFAULT = "~/remote-exec";
+		String remoteWorkingDirectory = "/home/user/remote-exec";
 		try {
-			remoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, DEFAULT);
+			remoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, remoteWorkingDirectory);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -296,10 +285,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateSshFromConfiguration(ILaunchConfiguration configuration) {
-		String ssh = "";
-		final String DEFAULT = "path\\to\\plink.exe";
+		String ssh = "path\\to\\plink.exe";
 		try {
-			ssh = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, DEFAULT);
+			ssh = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SSH, ssh);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -307,10 +295,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateScpFromConfiguration(ILaunchConfiguration configuration) {
-		String scp = "";
-		final String DEFAULT = "path\\to\\pscp.exe";
+		String scp = "path\\to\\pscp.exe";
 		try {
-			scp = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, DEFAULT);
+			scp = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCP, scp);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -352,9 +339,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 
 	private void updateRemoteDebugCheckButton(ILaunchConfiguration configuration) {
 		boolean enableRemoteDebug = false;
-		final boolean DEFAULT = false;
 		try {
-			enableRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, DEFAULT);
+			enableRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, enableRemoteDebug);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -362,10 +348,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateTunnelingLocalPortText(ILaunchConfiguration configuration) {
-		String tunnelingLocalPort = "";
-		final String DEFAULT = "61620";
+		String tunnelingLocalPort = "61620";
 		try {
-			tunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, DEFAULT);
+			tunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, tunnelingLocalPort);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -375,10 +360,9 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	}
 
 	private void updateRemoteDebugPortText(ILaunchConfiguration configuration) {
-		String remoteDebugPort = "";
-		final String DEFAULT = "61620";
+		String remoteDebugPort = "61620";
 		try {
-			remoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, DEFAULT);
+			remoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, remoteDebugPort);
 		} catch (CoreException ce) {
 			setErrorMessage(ce.getStatus().getMessage());
 		}
@@ -420,7 +404,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 
 	@Override
 	public String getName() {
-		return "Remote Execution";
+		return "Remote Connection";
 	}
 
 	private void setOriginalParameterTextEnabled(boolean enabled) {

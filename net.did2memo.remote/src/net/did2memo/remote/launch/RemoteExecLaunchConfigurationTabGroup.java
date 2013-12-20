@@ -9,8 +9,7 @@ import org.eclipse.jdt.debug.ui.launchConfigurations.JavaClasspathTab;
 import org.eclipse.jdt.debug.ui.launchConfigurations.JavaJRETab;
 import org.eclipse.jdt.debug.ui.launchConfigurations.JavaMainTab;
 
-public class RemoteExecLaunchConfigurationTabGroup extends
-		AbstractLaunchConfigurationTabGroup {
+public class RemoteExecLaunchConfigurationTabGroup extends AbstractLaunchConfigurationTabGroup {
 
 	public RemoteExecLaunchConfigurationTabGroup() {
 
@@ -18,14 +17,7 @@ public class RemoteExecLaunchConfigurationTabGroup extends
 
 	@Override
 	public void createTabs(ILaunchConfigurationDialog dialog, String mode) {
-		ILaunchConfigurationTab[] tabs = new ILaunchConfigurationTab[] {
-				new JavaMainTab(),
-				new RemoteExecMainTab(),
-				new JavaArgumentsTab(),
-				new JavaClasspathTab(),
-				new JavaJRETab(),
-				new CommonTab()
-		};
+		ILaunchConfigurationTab[] tabs = new ILaunchConfigurationTab[] { new JavaMainTab(), new RemoteExecMainTab(), new RemoteExecTransferTab(), new JavaArgumentsTab(), new JavaClasspathTab(), new JavaJRETab(), new CommonTab() };
 		setTabs(tabs);
 	}
 }

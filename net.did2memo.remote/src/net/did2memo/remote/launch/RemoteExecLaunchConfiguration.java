@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.did2memo.remote.IRemoteExecConfigurationConstants;
@@ -23,7 +25,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
-import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.core.model.IDebugTarget;
 import org.eclipse.jdt.internal.launching.LaunchingMessages;
 import org.eclipse.jdt.internal.launching.LaunchingPlugin;
@@ -43,9 +44,9 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		// afraid to use "rm" command
 		// eclipse console
 
-		ILaunchConfigurationWorkingCopy copy = configuration.getWorkingCopy();
-
 		boolean attrRemoteDebug = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG, false);
+		boolean remoteDebug = attrRemoteDebug && "debug".equals(mode);
+
 		String attrRemoteWorkingDirectory = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_WORKING_DIR, ".");
 		String attrTunnelingLocalPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TUNNELING_LOCAL_PORT, "61620");
 		String attrRemoteDebugPort = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_REMOTE_DEBUG_PORT, "61620");
@@ -53,7 +54,6 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		String mainClassName = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, "");
 		String programArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROGRAM_ARGUMENTS, "");
 		String vmArguments = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS, "");
-		String[] classpaths = getClasspath(configuration);
 
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot root = workspace.getRoot();
@@ -71,23 +71,47 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 		String localScriptPath = localRootPath + File.separator + SCRIPT_NAME;
 		String remoteScriptPath = remoteRootPath + "/" + SCRIPT_NAME;
 
-		boolean remoteDebug = attrRemoteDebug && "debug".equals(mode);
-
 		ExternalCommand externalCommand = new ExternalCommand(getWorkingDirectory(configuration), this.getConsole(configuration), launch, configuration);
 
 		// prepare external command object
 		this.printLaunchInfo("### scp classpath elements ###\n");
 		externalCommand.execSsh("mkdir -p " + remoteClasspathDirPath);
 		String classpathArg = ".";
+		String[] classpaths = getClasspath(configuration);
 		for (String classpath : classpaths) {
 			File source = new File(classpath);
 			if (source.isDirectory()) {
-				externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath, true);
 				classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
 			} else if (source.isFile()) {
-				externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath + "/" + source.getName(), false);
 				classpathArg += ":" + remoteClasspathDirPath + "/" + source.getName();
 			}
+		}
+
+		int attrRemoteTransferStrategy = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TRANSFER_STRATEGY, IRemoteExecConfigurationConstants.PARAMETER_TRANSFER_ALL);
+		switch (attrRemoteTransferStrategy) {
+		case IRemoteExecConfigurationConstants.PARAMETER_TRANSFER_ALL:
+			for (String classpath : classpaths) {
+				File source = new File(classpath);
+				if (source.isDirectory()) {
+					externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath, true);
+				} else if (source.isFile()) {
+					externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath + "/" + source.getName(), false);
+				}
+			}
+			break;
+		case IRemoteExecConfigurationConstants.PARAMETER_TRANSFER_SELECTED:
+			List<Object> selectedClasspathList = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_TRANSFER_SELECTED_CLASSPATH_LIST, Arrays.asList(new Object[0]));
+			for (Object classpath : selectedClasspathList) {
+				File source = new File((String) classpath);
+				if (source.isDirectory()) {
+					externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath, true);
+				} else if (source.isFile()) {
+					externalCommand.execScp(source.getAbsolutePath(), remoteClasspathDirPath + "/" + source.getName(), false);
+				}
+			}
+			break;
+		default:
+
 		}
 
 		// careate local working folder
