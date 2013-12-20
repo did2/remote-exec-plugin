@@ -1,5 +1,7 @@
 package net.did2memo.remote.launch;
 
+import java.io.File;
+
 import net.did2memo.remote.IRemoteExecConfigurationConstants;
 
 import org.eclipse.core.runtime.CoreException;
@@ -405,6 +407,55 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	@Override
 	public String getName() {
 		return "Remote Connection";
+	}
+
+	@Override
+	public boolean isValid(ILaunchConfiguration launchConfig) {
+		setErrorMessage(null);
+		setMessage(null);
+		String user = this.fUserText.getText().trim();
+		if (user.length() == 0) {
+			setErrorMessage("User name is not specified.");
+			return false;
+		}
+
+		String host = this.fHostText.getText().trim();
+		if (host.length() == 0) {
+			setErrorMessage("Host is not specified.");
+			return false;
+		}
+
+		String port = this.fPortText.getText().trim();
+		if (port.length() == 0) {
+			setErrorMessage("Port number is not specified.");
+			return false;
+		}
+		int portnum = -1;
+		try {
+			portnum = Integer.parseInt(port);
+		} catch (NumberFormatException e) {
+			setErrorMessage("Invalid port number (port number integer).");
+			return false;
+		}
+		if (portnum < 1 || 65535 < portnum) {
+			setErrorMessage("Invalid port number (0-65535).");
+			return false;
+		}
+
+		String sshPath = this.fSshText.getText().trim();
+		String scpPath = this.fScpText.getText().trim();
+		File sshFile = new File(sshPath);
+		if (!sshFile.exists()) {
+			setErrorMessage("Invalid SSH file path. \"" + sshFile + "\"does not exist.");
+			return false;
+		}
+		File scpFile = new File(scpPath);
+		if (!scpFile.exists()) {
+			setErrorMessage("Invalid SSH file path. \"" + scpFile + "\"SCP command file does not exist.");
+			return false;
+		}
+
+		return true;
 	}
 
 	private void setOriginalParameterTextEnabled(boolean enabled) {
