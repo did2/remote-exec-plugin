@@ -123,16 +123,43 @@ public class RemoteExecLaunchConfiguration extends AbstractJavaLaunchConfigurati
 
 		// create execute script
 		this.printLaunchInfo("### compose script ###\n");
-		String script = "#!/bin/sh" + "\n";
-		script += "java";
-		if (remoteDebug) {
-			script += " -agentlib:jdwp=transport=dt_socket,suspend=y,server=y,timeout=10000,address=" + attrRemoteDebugPort;
+		int style = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCRIPT_TEMPLATE_STYLE, IRemoteExecConfigurationConstants.SCRIPT_TEMPLATE_STYLE_DEFAULT);
+		String template = LaunchScriptTemplate.SCRIPT_TEMPLATE_DEFAULT;
+		if (style == IRemoteExecConfigurationConstants.SCRIPT_TEMPLATE_STYLE_DEFAULT) {
+			template = LaunchScriptTemplate.SCRIPT_TEMPLATE_DEFAULT;
+		} else if (style == IRemoteExecConfigurationConstants.SCRIPT_TEMPLATE_STYLE_ORIGINAL) {
+			template = configuration.getAttribute(IRemoteExecConfigurationConstants.ATTR_SCRIPT_TEMPLATE, LaunchScriptTemplate.SCRIPT_TEMPLATE_DEFAULT);
 		}
-		script += " " + vmArguments;
-		script += " -Dfile.encoding=UTF-8";
-		script += " -classpath " + "\"" + classpathArg + "\"";
-		script += " " + mainClassName;
-		script += " " + programArguments;
+		LaunchScriptTemplate scriptTemplate = new LaunchScriptTemplate(template);
+		scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_CLASSPATH, classpathArg);
+		scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_MAIN_CLASS, mainClassName);
+		scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_PROGRAM_ARGS, programArguments);
+		if (remoteDebug) {
+			scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_REMOTE_DEBUG_OPTION, "-agentlib:jdwp=transport=dt_socket,suspend=n,server=y,timeout=10000,address=$remote_debug_port");
+			scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_REMOTE_DEBUG_PORT, attrRemoteDebugPort);
+		} else {
+			scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_REMOTE_DEBUG_OPTION, "");
+		}
+		scriptTemplate.replace(LaunchScriptTemplate.VAR_NAME_VM_ARGS, vmArguments);
+
+		if (scriptTemplate.containsVarPrefix()) {
+			this.printLaunchInfo("Launch Script Template Error (contains unreplaced $ mark)");
+			this.printLaunchInfo("Current Script :");
+			this.printLaunchInfo(scriptTemplate.getScript());
+			return;
+		}
+		String script = scriptTemplate.getScript();
+
+//		String script = "#!/bin/sh" + "\n";
+//		script += "java";
+//		if (remoteDebug) {
+//			script += " -agentlib:jdwp=transport=dt_socket,suspend=y,server=y,timeout=10000,address=" + attrRemoteDebugPort;
+//		}
+//		script += " " + vmArguments;
+//		script += " -Dfile.encoding=UTF-8";
+//		script += " -classpath " + "\"" + classpathArg + "\"";
+//		script += " " + mainClassName;
+//		script += " " + programArguments;
 		this.printLaunchInfo(script + "\n");
 
 		// save execute script

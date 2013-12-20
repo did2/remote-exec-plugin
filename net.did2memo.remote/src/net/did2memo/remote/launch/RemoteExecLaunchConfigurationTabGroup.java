@@ -17,7 +17,7 @@ public class RemoteExecLaunchConfigurationTabGroup extends AbstractLaunchConfigu
 
 	@Override
 	public void createTabs(ILaunchConfigurationDialog dialog, String mode) {
-		ILaunchConfigurationTab[] tabs = new ILaunchConfigurationTab[] { new JavaMainTab(), new RemoteExecMainTab(), new RemoteExecTransferTab(), new JavaArgumentsTab(), new JavaClasspathTab(), new JavaJRETab(), new CommonTab() };
+		ILaunchConfigurationTab[] tabs = new ILaunchConfigurationTab[] { new JavaMainTab(), new RemoteExecMainTab(), new RemoteExecTransferTab(), new RemoteExecLaunchScriptTab(), new JavaArgumentsTab(), new JavaClasspathTab(), new JavaJRETab(), new CommonTab() };
 		setTabs(tabs);
 	}
 }

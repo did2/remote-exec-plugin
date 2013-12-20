@@ -27,4 +27,9 @@ public interface IRemoteExecConfigurationConstants {
 	public int PARAMETER_TRANSFER_ALL = 1;
 	public int PARAMETER_TRANSFER_SELECTED = 2;
 	public String ATTR_TRANSFER_SELECTED_CLASSPATH_LIST = CONFIG_ID + ".transfer-selected"; // value tyep is List<String>
+
+	public String ATTR_SCRIPT_TEMPLATE_STYLE = CONFIG_ID + ".script_template_style";
+	public int SCRIPT_TEMPLATE_STYLE_DEFAULT = 1;
+	public int SCRIPT_TEMPLATE_STYLE_ORIGINAL = 2;
+	public String ATTR_SCRIPT_TEMPLATE = CONFIG_ID + ".script_template";
 }
