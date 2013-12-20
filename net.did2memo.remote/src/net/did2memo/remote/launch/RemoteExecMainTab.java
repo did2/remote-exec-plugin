@@ -36,11 +36,7 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 
 	// command line parameter UI widget
 	protected Button fPlinkPscpStyleParameterRadioButton;
-//	protected Text fPlinkPresetParameterText;
-//	protected Text fPscpPresetParameterText;
 	protected Button fSshScpStyleParameterRadioButton;
-//	protected Text fSshPresetParameterText;
-//	protected Text fScpPresetParameterText;
 	protected Button fOriginalStyleParameterRadioButton;
 	protected Text fSshParameterText;
 	protected Text fScpParameterText;
@@ -58,8 +54,8 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 	private class WidgetListener implements ModifyListener, SelectionListener {
 		@Override
 		public void modifyText(ModifyEvent e) {
-			updateLaunchConfigurationDialog();
-			updateLocalCommandPlan();
+			RemoteExecMainTab.this.scheduleUpdateJob(); // fast
+//			updateLaunchConfigurationDialog(); // slow
 		}
 
 		@Override
@@ -157,11 +153,11 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		});
 
 		this.fOriginalStyleParameterRadioButton = createRadioButton(group, "original parameter style");
+		this.fOriginalStyleParameterRadioButton.addSelectionListener(this.fListener);
 		this.fOriginalStyleParameterRadioButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				RemoteExecMainTab.this.setOriginalParameterTextEnabled(true);
-
 			}
 		});
 
@@ -243,7 +239,6 @@ public class RemoteExecMainTab extends AbstractLaunchConfigurationTab {
 		updateRemoteDebugPortText(configuration);
 
 		updateLocalCommandPlan();
-
 	}
 
 	private void updateUserFromConfiguration(ILaunchConfiguration configuration) {
